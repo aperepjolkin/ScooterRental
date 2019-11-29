@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Security.Cryptography;
 using System.Text;
 using Moq;
 using NUnit.Framework;
@@ -85,7 +86,21 @@ namespace ScooterRentalClassLibrary
         public void Test_Calculate_Rental_Income_From_Rentals()
         {
             // Arrange
-
+            var listOfScooters = new List<Scooter>()
+            {
+                new Scooter("4", pricePerMinute) { IsRented = true },
+                new Scooter("5", pricePerMinute) { IsRented = true },
+                new Scooter("6", pricePerMinute) { IsRented = false },
+                new Scooter("7", pricePerMinute) { IsRented = false },
+                new Scooter("8", pricePerMinute) { IsRented = false },
+                new Scooter("9", pricePerMinute) { IsRented = true },
+                new Scooter("10", pricePerMinute) { IsRented = true },
+                new Scooter("11", pricePerMinute) { IsRented = true },
+                new Scooter("12", pricePerMinute) { IsRented = true }
+            };
+           
+           
+            decimal totalIncome = _rentalCompany.CalculateIncome(null,true);
             // Act
 
             // Assert

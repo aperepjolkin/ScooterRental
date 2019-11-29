@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
 using Moq;
+using NuGet.Frameworks;
 using NUnit.Framework;
 
 namespace ScooterRentalClassLibrary
@@ -65,7 +66,75 @@ namespace ScooterRentalClassLibrary
             //Assert
             Assert.Greater(totalEndRent,0);
         }
-       
 
+        [Test]
+        public void Test_Should_Not_Allow_Negative_Price_Per_Minute()
+        {
+            Assert.Multiple(() =>
+            {
+                var ex = Assert.Throws<ArgumentException>(
+                    () => _scooterService.AddScooter("456", -0.10M));
+                StringAssert.StartsWith("Price per minute must be positive", ex.Message);
+
+                ex = Assert.Throws<ArgumentException>(
+                    () => _scooterService.AddScooter("444", -0.00M));
+                StringAssert.StartsWith("Price per minute must be positive", ex.Message);
+            });
+        }
+
+        [Test]
+        public void Test_Should_Not_Allow_Duplicated_ScooterIds()
+        {
+            _scooterService.AddScooter("456", 0.10M);
+            _scooterService.AddScooter("456", 0.10M);
+            var ex = Assert.Throws<Exception>(
+                () => { _scooterService.GetScooters(); }
+            );
+            StringAssert.StartsWith("Duplicated scooter id", ex.Message);
+            
+        }
+
+        [Test]
+        public void Test_Should_Return_Null_If_Scooter_Not_Found()
+        {
+            // Arrange
+            _scooterService.AddScooter("Test", 0.10M);
+
+            // Act
+            var notFound = _scooterService.GetScooterById("5696");
+
+            // Assert
+            Assert.IsNull(notFound);
+        }
+
+        [Test]
+        public void Test_Remove_Scooter_If_Found()
+        {
+            // Arrange
+            string scooterIdToBeRemoved = "6";
+            _scooterService.AddScooter("7", 0.10M);
+            _scooterService.AddScooter(scooterIdToBeRemoved, 0.10M);
+            // Act
+            _scooterService.RemoveScooter(scooterIdToBeRemoved);
+            var actualResult = _scooterService.GetScooterById(scooterIdToBeRemoved);
+            // Assert
+            Assert.IsNull(actualResult);
+        }
+
+        [Test]
+        public void Test_Should_Not_Remove_a_Rented_Scooter()
+        {
+            // Arrange
+            string scooterIdToBeRemoved = "10";
+            _scooterService.AddScooter(scooterIdToBeRemoved, 0.10M);
+            var scooter = _scooterService.GetScooterById(scooterIdToBeRemoved);
+            scooter.IsRented = true;
+            
+            // Assert
+            var ex = Assert.Throws<Exception>(
+                () => { _scooterService.RemoveScooter(scooterIdToBeRemoved); }
+            );
+            StringAssert.StartsWith("Rented scooter can't be removed", ex.Message);
+        }
     }
 }

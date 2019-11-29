@@ -18,13 +18,25 @@ namespace ScooterRentalClassLibrary
 
         public void AddScooter(string id, decimal pricePerMinute)
         {
-            var s = new Scooter(id, pricePerMinute);
+            //Throw an exception if price per minute equal to negative or zero values
+            if (pricePerMinute <= 0)
+                throw new ArgumentException(
+                    "Price per minute must be positive",nameof(pricePerMinute));
 
-            _scooterList.Add(s);
+            var s = new Scooter(id, pricePerMinute);
+            ScooterComparer scooterComparer = new ScooterComparer();
+
+            if (_scooterList.Contains(s, scooterComparer))
+            {
+                throw new ArgumentException("Duplicated scooter id",id);
+            } else
+                _scooterList.Add(s);
+            
         }
 
         public Scooter GetScooterById(string scooterId)
         {
+
             return _scooterList.Find(scooter => scooter.Id == scooterId);
         }
 
@@ -37,7 +49,10 @@ namespace ScooterRentalClassLibrary
         {
             var scooterToRemove = _scooterList.SingleOrDefault(scooter => scooter.Id == id);
             if (scooterToRemove != null)
-                _scooterList.Remove(scooterToRemove);
+                if (scooterToRemove.IsRented) {
+                    throw new Exception("Rented scooter can't be removed");
+                }
+            _scooterList.Remove(scooterToRemove);
         }
     }
 }
