@@ -70,14 +70,23 @@ namespace ScooterRentalClassLibrary
             
         }
 
+        public decimal DiffMinutes( DateTime e, DateTime s)
+        {
+            return (decimal)(e - s).TotalMinutes;
+        }
         public decimal CalculateRentForScooter(Scooter scooter)
         {
             _endRent = _currentTime.Now;
-            var diffInMinutes = (_endRent - _startRent).TotalMinutes;
-            _finalRent = Convert.ToInt32(diffInMinutes) * scooter.PricePerMinute;
+            var diffInMinutes = (decimal)(_endRent - _startRent).TotalMinutes;
 
-            //If total amount per day reaches 20 EUR than timer must be stopped and restarted at beginning of next day at 0:00 am
+            var maxMinutesAllowedPerDay = _maxRentDailyIncomeLimit / scooter.PricePerMinute;
+            if(diffInMinutes <= maxMinutesAllowedPerDay)
+              _finalRent = Convert.ToInt32(diffInMinutes) * scooter.PricePerMinute;
+            else
+               _finalRent = Convert.ToInt32(maxMinutesAllowedPerDay) * scooter.PricePerMinute;
             ScooterRentHistory(scooter);
+            //If total amount per day reaches 20 EUR than timer must be stopped and restarted at beginning of next day at 0:00 am
+
             if (_finalRent >= (_maxRentDailyIncomeLimit))
             {
                 _startRent = new DateTime(
@@ -103,40 +112,17 @@ namespace ScooterRentalClassLibrary
         {
             var scooter = _iScooterService.GetScooterById(id);
             var scooterRentIncome = CalculateRentForScooter(scooter);
-
+           
             var scooterRented = _rentTotal.Find(x => x.ScooterId == scooter.Id);
+            var scooterRentedTimesCount = _rentTotal.FindAll(x => x.ScooterId == scooter.Id).Count;
+            if (scooterRentedTimesCount > 1)
+            {
+                scooterRentIncome = _rentTotal.Sum(x => x.Income);
+            }
             scooterRented.IsRented = false;
 
             scooter.IsRented = false;
-            //_endRent = _currentTime.Now;
-            //var diffInMinutes = (_endRent - _startRent).TotalMinutes;
-            //_finalRent = Convert.ToInt32(diffInMinutes) * pricePerMinute;
-
-            //if (scooterRented != null) {
-
             
-            //}
-            //else {
-            //    totalScooterRentalIncome.Income = finalRent;
-            //    totalScooterRentalIncome.IncomeYear = endRent.Year;
-            //    _rentTotal.Add(totalScooterRentalIncome);
-            //}
-
-
-            //If total amount per day reaches 20 EUR than timer must be stopped and restarted at beginning of next day at 0:00 am
-
-            //if (_finalRent >= (_maxRentDailyIncomeLimit)) {
-            //    _startRent =  new DateTime(
-            //        _currentTime.Now.Year,
-            //        _currentTime.Now.Month,
-            //        _currentTime.Now.Day, 0,0,0).AddDays(1);
-            //    return _finalRent;
-
-            //}
-
-
-            
-            //return _finalRent;
             return scooterRentIncome;
         }
 
