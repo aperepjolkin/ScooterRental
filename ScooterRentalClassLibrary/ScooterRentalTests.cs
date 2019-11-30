@@ -34,7 +34,7 @@ namespace ScooterRentalClassLibrary
             var listOfScooters = _scooterService.GetScooters();
             int initialCountOfScooters = listOfScooters.Count;
             //Act
-            _scooterService.AddScooter("1", pricePerMinute);
+            _scooterService.AddScooter("4", pricePerMinute);
             
             //Assert
             var result = _scooterService.GetScooters();
@@ -44,7 +44,7 @@ namespace ScooterRentalClassLibrary
         [Test]
         public void Test_Rent_Scooter() {
 
-            //Arrange
+            // Arrange
             DateTime starter = new DateTime(2017, 11, 27, 12, 47, 05);
             var timeMock = new Mock<DateTimeProvider>();
             timeMock.SetupGet(tp => tp.Now).Returns(starter);

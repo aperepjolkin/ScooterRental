@@ -17,23 +17,107 @@ namespace ScooterRentalClassLibrary
         private DateTime _starter;
         private DateTime _stopped;
         private decimal totalPriceOfRental = 0.00M;
-       [SetUp]
+        private decimal _pricePerMinute = 0.10M;
+
+        private const string _scooterId1001 = "ID1001";
+        private List<Scooter> listOfScooters;
+        private const string _scooterId1 = "1";
+        private const string _scooterId4 = "4";
+        private const string _scooterId5 = "5";
+        private const string _scooterId6 = "6";
+        private const string _scooterId7 = "7";
+
+        [SetUp]
         public void SetUp()
         {
-            _scooterService = new  ScooterService();
+            _scooterService = new ScooterService();
             _starter = new DateTime(2017, 11, 27, 12, 47, 05);
-            
+
             _timeMock = new Mock<DateTimeProvider>();
             _timeMock.SetupGet(tp => tp.Now).Returns(_starter);
             _rentalCompany = new RentalCompany(_scooterService, _timeMock.Object);
+
+            listOfScooters = new List<Scooter>()
+            {
+                new Scooter("4", pricePerMinute),
+                new Scooter("5", pricePerMinute),
+                new Scooter("6", pricePerMinute),
+                new Scooter("7", pricePerMinute),
+                new Scooter("8", pricePerMinute),
+                new Scooter("9", pricePerMinute),
+                new Scooter("10", pricePerMinute),
+                new Scooter("11", pricePerMinute),
+                new Scooter("12", pricePerMinute)
+            };
+
+            //InitMockYear(_starter, _scooterService, _rentalCompany);
+            foreach (var scooter in listOfScooters)
+            {
+                _scooterService.AddScooter(scooter.Id, pricePerMinute);
+
+            }
+        }
+
+        public void InitMockYear(DateTime randomDateTime)
+        {
             
+            _timeMock = new Mock<DateTimeProvider>();
+            _timeMock.SetupGet(tp => tp.Now).Returns(randomDateTime);
+
+        }
+
+        [Test]
+        public void Test_Start_Rent_Should_Fail_If_Scooter_Not_Found()
+        {
+            // Arrange
+
+            // Act
+
+            // Assert
+            var ex = Assert.Throws<Exception>(
+                () =>
+                {
+                    _rentalCompany.StartRent(_scooterId1001);
+                }
+           );
+            StringAssert.StartsWith("Scooter does not exist", ex.Message);
+        }
+
+        [Test]
+        public void Test_Throws_Exception_Rent_Should_Fail_If_Scooter_Is_Rented()
+        {
+            // Arrange
+
+            // Act
+
+            // Assert
+            var ex = Assert.Throws<Exception>(
+                () =>
+                {
+                    _rentalCompany.StartRent(_scooterId1);
+                }
+            );
+            StringAssert.StartsWith("Scooter already rented", ex.Message);
+        }
+        [Test]
+        public void Test_Rent_Should_Fail_If_Scooter_Is_Rented()
+        {
+            // Arrange
+
+            _scooterService.AddScooter(_scooterId1001, _pricePerMinute);
+            var scooter = _scooterService.GetScooterById(_scooterId1001);
+            _rentalCompany.StartRent(_scooterId1001);
+            // Act
+            _rentalCompany.StartRent(_scooterId1001);
+            // Assert
+            Assert.IsTrue(scooter.IsRented);
         }
 
         [Test]
         public void Test_Calculate_Rental_Price_When_Rental_Ends()
         {
             // Arrange
-            var scooter = _scooterService.GetScooterById("1");
+            var scooter = _scooterService.GetScooterById(_scooterId1);
             // Act
             _rentalCompany.StartRent(scooter.Id);
             //Stop scooter rent after 1 hour from start rent
@@ -82,30 +166,273 @@ namespace ScooterRentalClassLibrary
             });
         }
 
+        
         [Test]
         public void Test_Calculate_Rental_Income_From_Rentals()
         {
             // Arrange
-            var listOfScooters = new List<Scooter>()
-            {
-                new Scooter("4", pricePerMinute) { IsRented = true },
-                new Scooter("5", pricePerMinute) { IsRented = true },
-                new Scooter("6", pricePerMinute) { IsRented = false },
-                new Scooter("7", pricePerMinute) { IsRented = false },
-                new Scooter("8", pricePerMinute) { IsRented = false },
-                new Scooter("9", pricePerMinute) { IsRented = true },
-                new Scooter("10", pricePerMinute) { IsRented = true },
-                new Scooter("11", pricePerMinute) { IsRented = true },
-                new Scooter("12", pricePerMinute) { IsRented = true }
-            };
-           
-           
-            decimal totalIncome = _rentalCompany.CalculateIncome(null,true);
-            // Act
+            var expectedIncomeAll = 24.9M;
 
+            
+            //InitMockYear(_starter, _scooterService, _rentalCompany);
+            foreach (var scooter in listOfScooters)
+            {
+                _scooterService.GetScooterById(scooter.Id);
+
+                _starter = RandomDate.RandomDay();
+                _timeMock.SetupGet(tp => tp.Now).Returns(_starter);
+                _rentalCompany.StartRent(scooter.Id);
+
+                _stopped = _starter.AddHours(0.45);
+                _timeMock.SetupGet(tp => tp.Now).Returns(_stopped);
+                //Exclude two sooters from stops to calculated
+                if (!scooter.Id.Equals("8") && !scooter.Id.Equals("10"))
+                {
+                    _rentalCompany.EndRent(scooter.Id);
+
+                }
+                else
+                {
+                    _stopped = _starter.AddHours(0.50);
+                    _timeMock.SetupGet(tp => tp.Now).Returns(_stopped);
+                    _rentalCompany.CalculateRentForScooter(scooter);
+
+                }
+            }
+
+
+            // Act
+            decimal totalIncome = _rentalCompany.CalculateIncome(2018, true);
             // Assert
+            Assert.AreEqual(expectedIncomeAll, totalIncome);
         }
 
+        [Test]
+        public void Test_Calculate_Total_Income_Rented_Year_IncludeNotCompletedRentals_At_The_Report_Time()
+        {
+            // Arrange
+            var expectedIncomeAll = 11.70M;
+
+            // Act
+            _starter = new DateTime(2019, 11, 30, 15, 39, 00);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_starter);
+            _rentalCompany.StartRent(_scooterId4);
+
+            //Scooter 4 is rented for 30 minutes
+            _stopped = _starter.AddHours(0.50);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_stopped);
+            totalPriceOfRental = _rentalCompany.EndRent(_scooterId4);
+
+            //Scooter 5 is rented for 1 hours
+            _starter = new DateTime(2019, 11, 29, 12, 30, 00);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_starter);
+            _rentalCompany.StartRent(_scooterId5);
+
+            _stopped = _starter.AddHours(1);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_stopped);
+            totalPriceOfRental = _rentalCompany.EndRent(_scooterId5);
+
+            //Scooter 6 is rented for 27 minutes, but not stopped
+            _starter = new DateTime(2019, 11, 28, 14, 00, 00);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_starter);
+            _rentalCompany.StartRent(_scooterId6);
+
+            _stopped = _starter.AddHours(0.45);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_stopped);
+            _rentalCompany.CalculateRentForScooter(_scooterService.GetScooterById(_scooterId6));
+
+            // Act
+            decimal totalIncome = _rentalCompany.CalculateIncome(2019, true);
+            // Assert
+            Assert.AreEqual(expectedIncomeAll, totalIncome);
+        }
+
+        [Test]
+        public void Test_Calculate_Total_Income_Rented_One_Year_All_Stopped_Scooters_Report_Time()
+        {
+            // Arrange
+            var expectedIncomeAll = 9.00M;
+
+            // Act
+            _starter = new DateTime(2019, 11, 30, 15, 39, 00);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_starter);
+            _rentalCompany.StartRent(_scooterId4);
+
+            //Scooter 4 is rented for 30 minutes
+            _stopped = _starter.AddHours(0.50);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_stopped);
+            totalPriceOfRental = _rentalCompany.EndRent(_scooterId4);
+
+            //Scooter 5 is rented for 1 hours
+            _starter = new DateTime(2019, 11, 29, 12, 30, 00);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_starter);
+            _rentalCompany.StartRent(_scooterId5);
+
+            _stopped = _starter.AddHours(1);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_stopped);
+            totalPriceOfRental = _rentalCompany.EndRent(_scooterId5);
+
+            //Scooter 6 is rented for 27 minutes, but not stopped
+            _starter = new DateTime(2019, 11, 28, 14, 00, 00);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_starter);
+            _rentalCompany.StartRent(_scooterId6);
+
+            _stopped = _starter.AddHours(0.45);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_stopped);
+            _rentalCompany.CalculateRentForScooter(_scooterService.GetScooterById(_scooterId6));
+
+            // Act
+            decimal totalIncome = _rentalCompany.CalculateIncome(2019,false);
+            // Assert
+            Assert.AreEqual(expectedIncomeAll, totalIncome);
+        }
+
+        [Test]
+        public void Test_Calculate_Total_Income_Rented_Multiple_Years_All_Stopped_Scooters()
+        {
+            // Arrange
+            var expectedIncomeAll = 9.00M;
+
+            // Act
+            _starter = new DateTime(2019, 11, 30, 15, 39, 00);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_starter);
+            _rentalCompany.StartRent(_scooterId4);
+
+            //Scooter 4 is rented for 30 minutes
+            _stopped = _starter.AddHours(0.50);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_stopped);
+            totalPriceOfRental = _rentalCompany.EndRent(_scooterId4);
+
+            //Scooter 5 is rented for 1 hours
+            _starter = new DateTime(2019, 11, 29, 12, 30, 00);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_starter);
+            _rentalCompany.StartRent(_scooterId5);
+
+            _stopped = _starter.AddHours(1);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_stopped);
+            totalPriceOfRental = _rentalCompany.EndRent(_scooterId5);
+
+            //Scooter 6 is rented for 27 minutes, but not stopped
+            _starter = new DateTime(2019, 11, 28, 14, 00, 00);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_starter);
+            _rentalCompany.StartRent(_scooterId6);
+
+            _stopped = _starter.AddHours(0.45);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_stopped);
+            _rentalCompany.CalculateRentForScooter(_scooterService.GetScooterById(_scooterId6));
+
+            //Scooter 7 is rented for 2 hours
+            _starter = new DateTime(2018, 11, 29, 12, 30, 00);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_starter);
+            _rentalCompany.StartRent(_scooterId7);
+
+            _stopped = _starter.AddHours(2);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_stopped);
+            totalPriceOfRental = _rentalCompany.EndRent(_scooterId7);
+
+            // Act
+            decimal totalIncome = _rentalCompany.CalculateIncome(2019, false);
+            // Assert
+            Assert.AreEqual(expectedIncomeAll, totalIncome);
+        }
+
+        [Test]
+        public void Test_Calculate_Total_Rented_Income_With_Empty_Year_IncludeNotCompletedRentals_Scooter()
+        {
+            // Arrange
+            var expectedIncomeAll = 23.7M;
+
+            // Act
+            _starter = new DateTime(2019, 11, 30, 15, 39, 00);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_starter);
+            _rentalCompany.StartRent(_scooterId4);
+
+            //Scooter 4 is rented for 30 minutes
+            _stopped = _starter.AddHours(0.50);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_stopped);
+            totalPriceOfRental = _rentalCompany.EndRent(_scooterId4);
+
+            //Scooter 5 is rented for 1 hours
+            _starter = new DateTime(2019, 11, 29, 12, 30, 00);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_starter);
+            _rentalCompany.StartRent(_scooterId5);
+
+            _stopped = _starter.AddHours(1);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_stopped);
+            totalPriceOfRental = _rentalCompany.EndRent(_scooterId5);
+
+            //Scooter 6 is rented for 27 minutes, but not stopped
+            _starter = new DateTime(2019, 11, 28, 14, 00, 00);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_starter);
+            _rentalCompany.StartRent(_scooterId6);
+
+            _stopped = _starter.AddHours(0.45);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_stopped);
+            _rentalCompany.CalculateRentForScooter(_scooterService.GetScooterById(_scooterId6));
+
+            //Scooter 7 is rented for 2 hours
+            _starter = new DateTime(2018, 11, 29, 12, 30, 00);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_starter);
+            _rentalCompany.StartRent(_scooterId7);
+
+            _stopped = _starter.AddHours(2);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_stopped);
+            totalPriceOfRental = _rentalCompany.EndRent(_scooterId7);
+
+            // Act
+            decimal totalIncome = _rentalCompany.CalculateIncome(null, true);
+            // Assert
+            Assert.AreEqual(expectedIncomeAll, totalIncome);
+        }
+
+        [Test]
+        public void Test_Calculate_Total_Rented_Income_With_Empty_Year_All_Stopped_Scooter()
+        {
+            // Arrange
+            var expectedIncomeAll = 21.0M;
+
+            // Act
+            _starter = new DateTime(2019, 11, 30, 15, 39, 00);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_starter);
+            _rentalCompany.StartRent(_scooterId4);
+
+            //Scooter 4 is rented for 30 minutes
+            _stopped = _starter.AddHours(0.50);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_stopped);
+            totalPriceOfRental = _rentalCompany.EndRent(_scooterId4);
+
+            //Scooter 5 is rented for 1 hours
+            _starter = new DateTime(2019, 11, 29, 12, 30, 00);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_starter);
+            _rentalCompany.StartRent(_scooterId5);
+
+            _stopped = _starter.AddHours(1);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_stopped);
+            totalPriceOfRental = _rentalCompany.EndRent(_scooterId5);
+
+            //Scooter 6 is rented for 27 minutes, but not stopped
+            _starter = new DateTime(2019, 11, 28, 14, 00, 00);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_starter);
+            _rentalCompany.StartRent(_scooterId6);
+
+            _stopped = _starter.AddHours(0.45);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_stopped);
+            _rentalCompany.CalculateRentForScooter(_scooterService.GetScooterById(_scooterId6));
+
+            //Scooter 7 is rented for 2 hours
+            _starter = new DateTime(2018, 11, 29, 12, 30, 00);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_starter);
+            _rentalCompany.StartRent(_scooterId7);
+
+            _stopped = _starter.AddHours(2);
+            _timeMock.SetupGet(tp => tp.Now).Returns(_stopped);
+            totalPriceOfRental = _rentalCompany.EndRent(_scooterId7);
+
+            // Act
+            decimal totalIncome = _rentalCompany.CalculateIncome(null, false);
+            // Assert
+            Assert.AreEqual(expectedIncomeAll, totalIncome);
+        }
         [Test]
         public void Test_Scooter_Is_In_Rent()
         {
