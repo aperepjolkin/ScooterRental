@@ -4,8 +4,10 @@ using System.Security.Cryptography;
 using System.Text;
 using Moq;
 using NUnit.Framework;
+using ScooterRentalClassLibrary;
 
-namespace ScooterRentalClassLibrary
+
+namespace ScooterRental.UnitTests
 {
     [TestFixture]
     public class RentalCompanyTests
