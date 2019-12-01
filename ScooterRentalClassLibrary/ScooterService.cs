@@ -8,12 +8,12 @@ namespace ScooterRentalClassLibrary
     public class ScooterService : IScooterService
     {
         private List<Scooter> _scooterList;
-        decimal pricePerMinute = 0.10M;
+        decimal _pricePerMinute = 0.10M;
         public ScooterService() {
             _scooterList = new List<Scooter>();
-            _scooterList.Add(new Scooter("1", pricePerMinute));
-            _scooterList.Add(new Scooter("2", pricePerMinute));
-            _scooterList.Add(new Scooter("3", pricePerMinute));
+            _scooterList.Add(new Scooter("1", _pricePerMinute));
+            _scooterList.Add(new Scooter("2", _pricePerMinute));
+            _scooterList.Add(new Scooter("3", _pricePerMinute));
         }
 
         public void AddScooter(string id, decimal pricePerMinute)
@@ -28,7 +28,7 @@ namespace ScooterRentalClassLibrary
 
             if (_scooterList.Contains(s, scooterComparer))
             {
-                throw new ArgumentException("Duplicated scooter id",id);
+                throw new Exception("Duplicated scooter id");
             } else
                 _scooterList.Add(s);
             
@@ -36,12 +36,13 @@ namespace ScooterRentalClassLibrary
 
         public Scooter GetScooterById(string scooterId)
         {
-
+            //Find scooter by id
             return _scooterList.Find(scooter => scooter.Id == scooterId);
         }
 
         public IList<Scooter> GetScooters()
         {
+            //Return list of scooters
             return _scooterList;
         }
 
@@ -49,6 +50,7 @@ namespace ScooterRentalClassLibrary
         {
             var scooterToRemove = _scooterList.SingleOrDefault(scooter => scooter.Id == id);
             if (scooterToRemove != null)
+                //Check if scooter is rented and cannot be removed, then throw an exception
                 if (scooterToRemove.IsRented) {
                     throw new Exception("Rented scooter can't be removed");
                 }

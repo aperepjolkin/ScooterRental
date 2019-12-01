@@ -86,9 +86,9 @@ namespace ScooterRentalClassLibrary
         public void Test_Should_Not_Allow_Duplicated_ScooterIds()
         {
             _scooterService.AddScooter("456", 0.10M);
-            _scooterService.AddScooter("456", 0.10M);
+            
             var ex = Assert.Throws<Exception>(
-                () => { _scooterService.GetScooters(); }
+                () => { _scooterService.AddScooter("456", 0.10M); }
             );
             StringAssert.StartsWith("Duplicated scooter id", ex.Message);
             
