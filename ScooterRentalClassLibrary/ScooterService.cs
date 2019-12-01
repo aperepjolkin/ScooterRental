@@ -52,7 +52,7 @@ namespace ScooterRentalClassLibrary
             if (scooterToRemove != null)
                 //Check if scooter is rented and cannot be removed, then throw an exception
                 if (scooterToRemove.IsRented) {
-                    throw new Exception("Rented scooter can't be removed");
+                    throw new Exception("Rented scooter can not be removed");
                 }
             _scooterList.Remove(scooterToRemove);
         }

@@ -134,7 +134,7 @@ namespace ScooterRental.UnitTests
             var ex = Assert.Throws<Exception>(
                 () => { _scooterService.RemoveScooter(scooterIdToBeRemoved); }
             );
-            StringAssert.StartsWith("Rented scooter can't be removed", ex.Message);
+            StringAssert.StartsWith("Rented scooter can not be removed", ex.Message);
         }
     }
 }
